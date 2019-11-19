@@ -14,8 +14,10 @@ STRICT_MODE_ON
 #include <iostream>
 #include <chrono>
 #include <fstream>
+#include<sstream>
+#include "main.h"
 
-std::ofstream Valores("Valores.txt");
+using namespace std;
 
 using namespace msr::airlib;
 
@@ -25,7 +27,7 @@ void printCarPose(const msr::airlib::Pose &pose, float speed)
 
 }
 
-void saveCarPose(const msr::airlib::Pose &pose, float speed)
+void saveCarPose(ofstream &Valores,const msr::airlib::Pose &pose, float speed)
 {
 	Valores << pose.position[0] << ";" << pose.position[1] << ";" << speed << std::endl;
 
@@ -57,6 +59,50 @@ void moveForwardAndBackward(msr::airlib::CarRpcLibClient &client)
 	client.setCarControls(CarApiBase::CarControls());
 }
 
+void manual(msr::airlib::CarRpcLibClient &client)
+{
+	
+	ofstream waypointS;
+
+	waypointS.open("waypoint.csv");
+
+	bool completouAvolta = false;
+	while (!completouAvolta) {
+		auto car_state = client.getCarState();
+		auto car_pose = car_state.kinematics_estimated.pose;
+		auto car_speed = car_state.speed;
+		saveCarPose(waypointS, car_pose, car_speed);
+
+		if (car_pose.position[1]<1 && car_pose.position[1]>0)
+				if(car_pose.position[0]>-5 && car_pose.position[0]<5)
+			completouAvolta = true;
+	}
+
+	waypointS.close();
+	
+}
+
+void automatico()
+{
+	
+	ifstream waypointE;
+
+	waypointE.open("waypoint.csv");
+
+	while (!waypointE.eof()) {
+
+		//string linha, txt;
+		//arq.eof()
+		//getline(arq, linha);
+		//istringstream valores(linha)
+
+		//cout << x << " " << y << "" << v << std::endl;
+	}
+	waypointE.close();
+
+
+}
+
 int main()
 {
 	std::cout << "Verifique se o arquivo Documentos\\AirSim\\settings.json " <<
@@ -69,22 +115,28 @@ int main()
 		client.confirmConnection();
 		client.reset();
 
-		while (true)
-		{
-			auto car_state = client.getCarState();
-			auto car_pose = car_state.kinematics_estimated.pose;
-			auto car_speed = car_state.speed;
-			saveCarPose(car_pose, car_speed);
+		cout << "Favor digite a opção de controle:\n";
+		cout << "Opção 0-Manual\n Opção1-Automatico";
 
-			std::cout << "x=" << car_pose.position[0] << " y=" << car_pose.position[1] << " v=" << car_speed << std::endl;
+		int opcao;
+		cin >> opcao;
+
+		switch (opcao) {
+		case 0:
+			manual(client);
+		break;
+
+		case 1:
+			automatico();
+		break;
 		}
-
 	}
+
+		
 	catch (rpc::rpc_error&  e) {
 		std::string msg = e.get_error().as<std::string>();
 		std::cout << "Verifique a exceção lançada pela API do AirSim." << std::endl << msg << std::endl; std::cin.get();
 	}
 
-	Valores.close();
 	return 0;
 }
