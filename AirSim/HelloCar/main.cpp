@@ -13,12 +13,22 @@ STRICT_MODE_ON
 #include "common/common_utils/FileSystem.hpp"
 #include <iostream>
 #include <chrono>
+#include <fstream>
+
+std::ofstream Valores("Valores.txt");
 
 using namespace msr::airlib;
 
 void printCarPose(const msr::airlib::Pose &pose, float speed)
 {
 	std::cout << "x=" << pose.position[0] << " y=" << pose.position[1] << " v=" << speed << std::endl;
+
+}
+
+void saveCarPose(const msr::airlib::Pose &pose, float speed)
+{
+	Valores << pose.position[0] << ";" << pose.position[1] << ";" << speed << std::endl;
+
 }
 
 void moveForwardAndBackward(msr::airlib::CarRpcLibClient &client)
@@ -47,33 +57,34 @@ void moveForwardAndBackward(msr::airlib::CarRpcLibClient &client)
 	client.setCarControls(CarApiBase::CarControls());
 }
 
-int main() 
+int main()
 {
-    std::cout << "Verifique se o arquivo Documentos\\AirSim\\settings.json " <<
-				 "está configurado para simulador de carros \"SimMode\"=\"Car\". " <<
-				 "Pressione Enter para continuar." << std::endl; 
+	std::cout << "Verifique se o arquivo Documentos\\AirSim\\settings.json " <<
+		"está configurado para simulador de carros \"SimMode\"=\"Car\". " <<
+		"Pressione Enter para continuar." << std::endl;
 	std::cin.get();
 
-    msr::airlib::CarRpcLibClient client;
-   
-    try {        
+	msr::airlib::CarRpcLibClient client;
+	try {
 		client.confirmConnection();
 		client.reset();
 
-		while(true)
-		{ 
+		while (true)
+		{
 			auto car_state = client.getCarState();
 			auto car_pose = car_state.kinematics_estimated.pose;
 			auto car_speed = car_state.speed;
+			saveCarPose(car_pose, car_speed);
 
 			std::cout << "x=" << car_pose.position[0] << " y=" << car_pose.position[1] << " v=" << car_speed << std::endl;
 		}
 
 	}
-    catch (rpc::rpc_error&  e) {
-        std::string msg = e.get_error().as<std::string>();
-        std::cout << "Verifique a exceção lançada pela API do AirSim." << std::endl << msg << std::endl; std::cin.get();
-    }
+	catch (rpc::rpc_error&  e) {
+		std::string msg = e.get_error().as<std::string>();
+		std::cout << "Verifique a exceção lançada pela API do AirSim." << std::endl << msg << std::endl; std::cin.get();
+	}
 
-    return 0;
+	Valores.close();
+	return 0;
 }
