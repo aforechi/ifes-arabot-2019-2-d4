@@ -21,6 +21,14 @@ using namespace std;
 
 using namespace msr::airlib;
 
+using msr::airlib::Pose;
+
+
+float distancia(const Pose &a, const Pose &b) {
+	return sqrt( (b.position[0] - a.position[0])*(b.position[0] - a.position[0])+
+		(b.position[1] - a.position[1])*(b.position[1] - a.position[1]));
+}
+
 void printCarPose(const msr::airlib::Pose &pose, float speed)
 {
 	std::cout << "x=" << pose.position[0] << " y=" << pose.position[1] << " v=" << speed << std::endl;
@@ -59,23 +67,34 @@ void moveForwardAndBackward(msr::airlib::CarRpcLibClient &client)
 	client.setCarControls(CarApiBase::CarControls());
 }
 
-void manual(msr::airlib::CarRpcLibClient &client)
+bool chegada(const msr::airlib::Pose &pose) {
+	return (pose.position[1] < 1 && pose.position[1]>0) && (pose.position[0] > -5 && pose.position[0] < 5);
+}
+
+
+void manual(msr::airlib::CarRpcLibClient &simulador)
 {
-	
 	ofstream waypointS;
 
 	waypointS.open("waypoint.csv");
 
 	bool completouAvolta = false;
-	while (!completouAvolta) {
-		auto car_state = client.getCarState();
-		auto car_pose = car_state.kinematics_estimated.pose;
-		auto car_speed = car_state.speed;
-		saveCarPose(waypointS, car_pose, car_speed);
 
-		if (car_pose.position[1]<1 && car_pose.position[1]>0)
-				if(car_pose.position[0]>-5 && car_pose.position[0]<5)
+	auto poseAnterior = simulador.getCarState().kinematics_estimated.pose;
+
+	while (!completouAvolta) {
+		auto car_state = simulador.getCarState();
+		auto poseAtual = car_state.kinematics_estimated.pose;
+		auto velocidade = car_state.speed;
+		
+		if(distancia(poseAnterior, poseAtual) > 1){
+			 saveCarPose(waypointS, poseAtual, velocidade);
+			 poseAnterior = poseAtual;
+		}
+
+		if (chegada(poseAtual)) {
 			completouAvolta = true;
+		}
 	}
 
 	waypointS.close();
