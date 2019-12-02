@@ -27,8 +27,7 @@ using msr::airlib::Pose;
 float distancia(const Pose &a, const Pose &b) {
 
 
-	return sqrt( (b.position[0] - a.position[0])*(b.position[0] - a.position[0])+
-		(b.position[1] - a.position[1])*(b.position[1] - a.position[1]));
+	return sqrt((pow((b.position[0] - a.position[0]),2)+ pow((b.position[1] - a.position[1]),2)));
 }
 
 void printCarPose(const msr::airlib::Pose &pose, float speed)
@@ -71,7 +70,7 @@ void moveForwardAndBackward(msr::airlib::CarRpcLibClient &client)
 
 bool chegada(const msr::airlib::Pose &pose) {
 	if (pose.position[0] > -5 && pose.position[0] <5) {
-		if (pose.position[1] > 0 && pose.position[1] < 1.0) {
+		if (pose.position[1] > 0.1 && pose.position[1] < 1.2) {
 			return true;
 		}	
 	}
@@ -79,11 +78,11 @@ bool chegada(const msr::airlib::Pose &pose) {
 }
 
 
-void manual(msr::airlib::CarRpcLibClient &simulador)
+void manual1(msr::airlib::CarRpcLibClient &simulador)
 {
-	ofstream waypointS;
+	ofstream waypointS1;
 
-	waypointS.open("waypoint_1m.csv");
+	waypointS1.open("waypoint_1m.txt");
 
 	bool completouAvolta = false;
 
@@ -95,7 +94,7 @@ void manual(msr::airlib::CarRpcLibClient &simulador)
 		auto velocidade = car_state.speed;
 		
 		if(distancia(poseAnterior, poseAtual) >1){
-			 saveCarPose(waypointS, poseAtual, velocidade);
+			 saveCarPose(waypointS1, poseAtual, velocidade);
 			 poseAnterior = poseAtual;
 		}
 
@@ -104,8 +103,36 @@ void manual(msr::airlib::CarRpcLibClient &simulador)
 		}
 	}
 
-	waypointS.close();
+	waypointS1.close();
 	
+}
+void manual5(msr::airlib::CarRpcLibClient &simulador)
+{
+	ofstream waypointS5;
+
+	waypointS5.open("waypoint_5m.txt");
+
+	bool completouAvolta = false;
+
+	auto poseAnterior = simulador.getCarState().kinematics_estimated.pose;
+
+	while (!completouAvolta) {
+		auto car_state = simulador.getCarState();
+		auto poseAtual = car_state.kinematics_estimated.pose;
+		auto velocidade = car_state.speed;
+
+		if (distancia(poseAnterior, poseAtual) >5) {
+			saveCarPose(waypointS5, poseAtual, velocidade);
+			poseAnterior = poseAtual;
+		}
+
+		if (chegada(poseAtual)) {
+			completouAvolta = true;
+		}
+	}
+
+	waypointS5.close();
+
 }
 
 void automatico(msr::airlib::CarRpcLibClient &simulador)
@@ -142,19 +169,20 @@ int main()
 		client.confirmConnection();
 		client.reset();
 
-		std::cout << "Favor digite a opção de controle:\n";
-		std::cout << "Opção 0-Manual\n Opção1-Automatico";
+		std::cout << "Favor digite a opcao de controle:\n";
+		std::cout << "Opcao 1-Manual\nOpcao 2-Automatico\n";
 
 		int opcao;
 		std::cin >> opcao;
 
 		switch (opcao) 
 		{
-		case 0:
-			manual(client);
+		case 1:
+			std::cout << "Opcao 1 escolhida. " << std::endl;
+			manual1(client);
 		break;
 
-		case 1:
+		case 2:
 			automatico(client);
 		break;
 
