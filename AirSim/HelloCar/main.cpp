@@ -25,6 +25,8 @@ using msr::airlib::Pose;
 
 
 float distancia(const Pose &a, const Pose &b) {
+
+
 	return sqrt( (b.position[0] - a.position[0])*(b.position[0] - a.position[0])+
 		(b.position[1] - a.position[1])*(b.position[1] - a.position[1]));
 }
@@ -68,7 +70,12 @@ void moveForwardAndBackward(msr::airlib::CarRpcLibClient &client)
 }
 
 bool chegada(const msr::airlib::Pose &pose) {
-	return (pose.position[1] < 1 && pose.position[1]>0) && (pose.position[0] > -5 && pose.position[0] < 5);
+	if (pose.position[0] > -5 && pose.position[0] <5) {
+		if (pose.position[1] > 0 && pose.position[1] < 1.0) {
+			return true;
+		}	
+	}
+	return false;
 }
 
 
@@ -76,7 +83,7 @@ void manual(msr::airlib::CarRpcLibClient &simulador)
 {
 	ofstream waypointS;
 
-	waypointS.open("waypoint.csv");
+	waypointS.open("waypoint_1m.csv");
 
 	bool completouAvolta = false;
 
@@ -87,7 +94,7 @@ void manual(msr::airlib::CarRpcLibClient &simulador)
 		auto poseAtual = car_state.kinematics_estimated.pose;
 		auto velocidade = car_state.speed;
 		
-		if(distancia(poseAnterior, poseAtual) > 1){
+		if(distancia(poseAnterior, poseAtual) >1){
 			 saveCarPose(waypointS, poseAtual, velocidade);
 			 poseAnterior = poseAtual;
 		}
@@ -101,58 +108,61 @@ void manual(msr::airlib::CarRpcLibClient &simulador)
 	
 }
 
-void automatico()
+void automatico(msr::airlib::CarRpcLibClient &simulador)
 {
 	
 	ifstream waypointE;
 
-	waypointE.open("waypoint.csv");
+	waypointE.open("waypoint_1m.csv");
 
 	while (!waypointE.eof()) {
 
-		//string linha, txt;
-		//arq.eof()
-		//getline(arq, linha);
-		//istringstream valores(linha)
+		string linha, coluna;
+		std::getline(waypointE, linha);
+		std::istringstream colunas(linha);
 
-		//cout << x << " " << y << "" << v << std::endl;
+		while (!colunas.eof()) {
+			std::getline(colunas, coluna, ',');
+			std::cout << coluna << std::endl;
+
+		}
+		
 	}
+	
 	waypointE.close();
-
 
 }
 
 int main()
 {
-	std::cout << "Verifique se o arquivo Documentos\\AirSim\\settings.json " <<
-		"está configurado para simulador de carros \"SimMode\"=\"Car\". " <<
-		"Pressione Enter para continuar." << std::endl;
-	std::cin.get();
-
+	
 	msr::airlib::CarRpcLibClient client;
+
 	try {
 		client.confirmConnection();
 		client.reset();
 
-		cout << "Favor digite a opção de controle:\n";
-		cout << "Opção 0-Manual\n Opção1-Automatico";
+		std::cout << "Favor digite a opção de controle:\n";
+		std::cout << "Opção 0-Manual\n Opção1-Automatico";
 
 		int opcao;
-		cin >> opcao;
+		std::cin >> opcao;
 
-		switch (opcao) {
+		switch (opcao) 
+		{
 		case 0:
 			manual(client);
 		break;
 
 		case 1:
-			automatico();
+			automatico(client);
 		break;
+
 		}
 	}
 
 		
-	catch (rpc::rpc_error&  e) {
+	catch (rpc::rpc_error& e) {
 		std::string msg = e.get_error().as<std::string>();
 		std::cout << "Verifique a exceção lançada pela API do AirSim." << std::endl << msg << std::endl; std::cin.get();
 	}
