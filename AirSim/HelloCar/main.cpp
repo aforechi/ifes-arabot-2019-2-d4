@@ -69,8 +69,8 @@ void moveForwardAndBackward(msr::airlib::CarRpcLibClient &client)
 }
 
 bool chegada(const msr::airlib::Pose &pose) {
-	if (pose.position[0] > -5 && pose.position[0] <5) {
-		if (pose.position[1] > 0.1 && pose.position[1] < 1.2) {
+	if (pose.position[1] > -10 && pose.position[1] <10) {
+		if (pose.position[0] > -2 && pose.position[0] < -0.1) {
 			return true;
 		}	
 	}
@@ -78,11 +78,11 @@ bool chegada(const msr::airlib::Pose &pose) {
 }
 
 
-void manual1(msr::airlib::CarRpcLibClient &simulador)
+void manual(msr::airlib::CarRpcLibClient &simulador)
 {
-	ofstream waypointS1;
+	ofstream waypointS;
 
-	waypointS1.open("waypoint_1m.txt");
+	waypointS.open("waypoint_.txt");
 
 	bool completouAvolta = false;
 
@@ -93,54 +93,28 @@ void manual1(msr::airlib::CarRpcLibClient &simulador)
 		auto poseAtual = car_state.kinematics_estimated.pose;
 		auto velocidade = car_state.speed;
 		
-		if(distancia(poseAnterior, poseAtual) >1){
-			 saveCarPose(waypointS1, poseAtual, velocidade);
-			 poseAnterior = poseAtual;
-		}
+		
+		 saveCarPose(waypointS, poseAtual, velocidade);
+		 //printCarPose(poseAtual, velocidade);
+		 poseAnterior = poseAtual;
+	
 
 		if (chegada(poseAtual)) {
 			completouAvolta = true;
 		}
 	}
 
-	waypointS1.close();
+	waypointS.close();
 	
 }
-void manual5(msr::airlib::CarRpcLibClient &simulador)
-{
-	ofstream waypointS5;
 
-	waypointS5.open("waypoint_5m.txt");
-
-	bool completouAvolta = false;
-
-	auto poseAnterior = simulador.getCarState().kinematics_estimated.pose;
-
-	while (!completouAvolta) {
-		auto car_state = simulador.getCarState();
-		auto poseAtual = car_state.kinematics_estimated.pose;
-		auto velocidade = car_state.speed;
-
-		if (distancia(poseAnterior, poseAtual) >5) {
-			saveCarPose(waypointS5, poseAtual, velocidade);
-			poseAnterior = poseAtual;
-		}
-
-		if (chegada(poseAtual)) {
-			completouAvolta = true;
-		}
-	}
-
-	waypointS5.close();
-
-}
 
 void automatico(msr::airlib::CarRpcLibClient &simulador)
 {
 	
 	ifstream waypointE;
 
-	waypointE.open("waypoint_1m.csv");
+	waypointE.open("waypoint_m.csv");
 
 	while (!waypointE.eof()) {
 
@@ -179,7 +153,7 @@ int main()
 		{
 		case 1:
 			std::cout << "Opcao 1 escolhida. " << std::endl;
-			manual1(client);
+			manual(client);
 		break;
 
 		case 2:
