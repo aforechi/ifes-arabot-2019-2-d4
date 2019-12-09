@@ -14,21 +14,23 @@ STRICT_MODE_ON
 #include <iostream>
 #include <chrono>
 #include <fstream>
-#include<sstream>
+#include <sstream>
 #include "main.h"
 
 using namespace std;
-
 using namespace msr::airlib;
-
 using msr::airlib::Pose;
 
 
-float distancia(const Pose &a, const Pose &b) {
+float deveSalvar(const Pose &a, const Pose &b, float intervalo) {
 
+	float dist= sqrt((pow((b.position[0] - a.position[0]),2)+ pow((b.position[1] - a.position[1]),2)));
+	if (dist >= intervalo)
+		return true;
 
-	return sqrt((pow((b.position[0] - a.position[0]),2)+ pow((b.position[1] - a.position[1]),2)));
+	return false;
 }
+
 
 void printCarPose(const msr::airlib::Pose &pose, float speed)
 {
@@ -69,8 +71,8 @@ void moveForwardAndBackward(msr::airlib::CarRpcLibClient &client)
 }
 
 bool chegada(const msr::airlib::Pose &pose) {
-	if (pose.position[1] > -10 && pose.position[1] <10) {
-		if (pose.position[0] > -2 && pose.position[0] < -0.1) {
+	if (pose.position[0] > -5 && pose.position[0] <5) {
+		if (pose.position[1] > 0.0 && pose.position[1] < 1.0) {
 			return true;
 		}	
 	}
@@ -84,8 +86,35 @@ void manual(msr::airlib::CarRpcLibClient &simulador)
 
 	waypointS.open("waypoint_.txt");
 
-	bool completouAvolta = false;
 
+	msr::airlib::Pose poseAnterior;
+	msr::airlib::Pose poseAtual;
+
+
+	poseAnterior.position[0] = 0;
+	poseAnterior.position[1] = 0;
+	do {
+		auto car_state = simulador.getCarState();
+		poseAtual = car_state.kinematics_estimated.pose;
+		auto velocidade = car_state.speed;
+
+		if (deveSalvar(poseAnterior, poseAtual, 1)) {
+			saveCarPose(waypointS, poseAnterior, velocidade);
+			poseAnterior = poseAtual;
+		}
+	} while (!chegada(poseAnterior));
+
+	waypointS.close();
+
+
+
+
+	/*ofstream waypointS;
+
+	waypointS.open("waypoint_.txt");
+
+	bool completouAvolta = false;
+	
 	auto poseAnterior = simulador.getCarState().kinematics_estimated.pose;
 
 	while (!completouAvolta) {
@@ -94,7 +123,7 @@ void manual(msr::airlib::CarRpcLibClient &simulador)
 		auto velocidade = car_state.speed;
 		
 		
-		 saveCarPose(waypointS, poseAtual, velocidade);
+		 saveCarPose(waypointS, poseAnterior, velocidade);
 		 //printCarPose(poseAtual, velocidade);
 		 poseAnterior = poseAtual;
 	
@@ -104,7 +133,7 @@ void manual(msr::airlib::CarRpcLibClient &simulador)
 		}
 	}
 
-	waypointS.close();
+	waypointS.close();*/
 	
 }
 
@@ -114,7 +143,7 @@ void automatico(msr::airlib::CarRpcLibClient &simulador)
 	
 	ifstream waypointE;
 
-	waypointE.open("waypoint_m.csv");
+	waypointE.open("waypoint_.txt");
 
 	while (!waypointE.eof()) {
 
