@@ -17,9 +17,7 @@ STRICT_MODE_ON
 #include <sstream>
 #include"LateralControl.h"
 #include"LongitudinalControl.h"
-#include"waypoints.h"
-
-
+#include "Waypoints.h"
 
 
 
@@ -76,50 +74,68 @@ void moveForwardAndBackward(msr::airlib::CarRpcLibClient &client)
 	client.setCarControls(CarApiBase::CarControls());
 }
 
+void moveInTheTrajectory(msr::airlib::CarRpcLibClient &client, float &aceleration, float &steering) {
+	CarApiBase::CarControls controls;
+	if (aceleration >= 0)
+		controls.throttle = aceleration;
+	else
+		controls.brake = -aceleration;
+	controls.steering = steering;
+	client.setCarControls(controls);
+}
+
+
 bool chegada(const msr::airlib::Pose &pose) {
-	if (pose.position[0] > -5 && pose.position[0] <5) {
-		if (pose.position[1] > 0.0 && pose.position[1] < 1.0) {
+	if (pose.position[0] > -3 && pose.position[0] <-1) {
+		if (pose.position[1] > -5 && pose.position[1] <5) {
 			return true;
 		}	
 	}
 	return false;
 }
 
-	
-
 
 int main()
 {
-	
 	msr::airlib::CarRpcLibClient simulador;
 	Waypoints checkpoints, trajectory;
+	LateralControl lateral_control(2.3, 1, 5);
+	LongitudinalControl velocity_control(1.0, 1.0, 0.01);
+
+	int opcao;
+	std::cout << "Favor digite a opcao de controle:\n";
+	std::cout << "Opcao 1-Manual\nOpcao 2-Automatico\n";
+	std::cin >> opcao;
 
 	try {
-		msr::airlib::Pose poseAnterior;
-		msr::airlib::Pose poseAtual;
-
+		
 		simulador.confirmConnection();
 		simulador.reset();
 
-		std::cout << "Favor digite a opcao de controle:\n";
-		std::cout << "Opcao 1-Manual\nOpcao 2-Automatico\n";
-		
-		int opcao;
-		std::cin >> opcao;
 
-		if (opcao==2) {
-			checkpoints.LoadWaypoints("waypoints_.txt");
+		if (opcao == 2) {
+			checkpoints.LoadWaypoints("Pontos.txt");
+			simulador.enableApiControl(true);
 		}
+
+		msr::airlib::Pose poseAnterior;
+		msr::airlib::Pose poseAtual;
+		poseAnterior.position[0] = 0;
+		poseAnterior.position[1] = 0;
+		
 		do {
 			auto car_state = simulador.getCarState();
 			poseAtual = car_state.kinematics_estimated.pose;
 			auto velocidade = car_state.speed;
 
+			if (opcao==2) {
 
-
-
-
-
+				Vector3r pose(poseAtual.position[0], poseAnterior.position[1], VectorMath::yawFromQuaternion(poseAtual.orientation));
+				double desired_velocity = checkpoints.GetWaypointVelocity(pose);
+				float steering = lateral_control.Update(checkpoints, pose, velocidade);
+				float aceleration = velocity_control.Update(velocidade, desired_velocity);
+				moveInTheTrajectory(simulador, aceleration, steering);
+			}
 
 
 			if (deveSalvar(poseAnterior, poseAtual, 1)) {
