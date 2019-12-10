@@ -15,7 +15,13 @@ STRICT_MODE_ON
 #include <chrono>
 #include <fstream>
 #include <sstream>
-#include "main.h"
+#include"LateralControl.h"
+#include"LongitudinalControl.h"
+#include"waypoints.h"
+
+
+
+
 
 using namespace std;
 using namespace msr::airlib;
@@ -79,117 +85,52 @@ bool chegada(const msr::airlib::Pose &pose) {
 	return false;
 }
 
-
-void manual(msr::airlib::CarRpcLibClient &simulador)
-{
-	ofstream waypointS;
-
-	waypointS.open("waypoint_.txt");
-
-
-	msr::airlib::Pose poseAnterior;
-	msr::airlib::Pose poseAtual;
-
-
-	poseAnterior.position[0] = 0;
-	poseAnterior.position[1] = 0;
-	do {
-		auto car_state = simulador.getCarState();
-		poseAtual = car_state.kinematics_estimated.pose;
-		auto velocidade = car_state.speed;
-
-		if (deveSalvar(poseAnterior, poseAtual, 1)) {
-			saveCarPose(waypointS, poseAnterior, velocidade);
-			poseAnterior = poseAtual;
-		}
-	} while (!chegada(poseAnterior));
-
-	waypointS.close();
-
-
-
-
-	/*ofstream waypointS;
-
-	waypointS.open("waypoint_.txt");
-
-	bool completouAvolta = false;
-	
-	auto poseAnterior = simulador.getCarState().kinematics_estimated.pose;
-
-	while (!completouAvolta) {
-		auto car_state = simulador.getCarState();
-		auto poseAtual = car_state.kinematics_estimated.pose;
-		auto velocidade = car_state.speed;
-		
-		
-		 saveCarPose(waypointS, poseAnterior, velocidade);
-		 //printCarPose(poseAtual, velocidade);
-		 poseAnterior = poseAtual;
 	
 
-		if (chegada(poseAtual)) {
-			completouAvolta = true;
-		}
-	}
-
-	waypointS.close();*/
-	
-}
-
-
-void automatico(msr::airlib::CarRpcLibClient &simulador)
-{
-	
-	ifstream waypointE;
-
-	waypointE.open("waypoint_.txt");
-
-	while (!waypointE.eof()) {
-
-		string linha, coluna;
-		std::getline(waypointE, linha);
-		std::istringstream colunas(linha);
-
-		while (!colunas.eof()) {
-			std::getline(colunas, coluna, ',');
-			std::cout << coluna << std::endl;
-
-		}
-		
-	}
-	
-	waypointE.close();
-
-}
 
 int main()
 {
 	
-	msr::airlib::CarRpcLibClient client;
+	msr::airlib::CarRpcLibClient simulador;
+	Waypoints checkpoints, trajectory;
 
 	try {
-		client.confirmConnection();
-		client.reset();
+		msr::airlib::Pose poseAnterior;
+		msr::airlib::Pose poseAtual;
+
+		simulador.confirmConnection();
+		simulador.reset();
 
 		std::cout << "Favor digite a opcao de controle:\n";
 		std::cout << "Opcao 1-Manual\nOpcao 2-Automatico\n";
-
+		
 		int opcao;
 		std::cin >> opcao;
 
-		switch (opcao) 
-		{
-		case 1:
-			std::cout << "Opcao 1 escolhida. " << std::endl;
-			manual(client);
-		break;
-
-		case 2:
-			automatico(client);
-		break;
-
+		if (opcao==2) {
+			checkpoints.LoadWaypoints("waypoints_.txt");
 		}
+		do {
+			auto car_state = simulador.getCarState();
+			poseAtual = car_state.kinematics_estimated.pose;
+			auto velocidade = car_state.speed;
+
+
+
+
+
+
+
+
+			if (deveSalvar(poseAnterior, poseAtual, 1)) {
+				trajectory.AddWaypoints(poseAtual.position[0], poseAtual.position[1], velocidade);
+				
+				poseAnterior = poseAtual;
+			}
+		} while (!chegada(poseAnterior));
+
+
+		trajectory.SaveWaypoints("trajetoria.txt");
 	}
 
 		

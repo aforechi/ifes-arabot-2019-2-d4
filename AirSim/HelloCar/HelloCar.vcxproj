@@ -31,7 +31,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="main.h" />
     <ClInclude Include="purepursuit.h" />
     <ClInclude Include="waypoints.h" />
   </ItemGroup>
