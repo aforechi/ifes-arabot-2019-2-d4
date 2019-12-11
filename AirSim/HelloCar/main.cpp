@@ -20,7 +20,6 @@ STRICT_MODE_ON
 #include "Waypoints.h"
 
 
-
 using namespace std;
 using namespace msr::airlib;
 using msr::airlib::Pose;
@@ -99,8 +98,8 @@ int main()
 {
 	msr::airlib::CarRpcLibClient simulador;
 	Waypoints checkpoints, trajectory;
-	LateralControl lateral_control(2.3, 1, 5);
-	LongitudinalControl velocity_control(1.0, 1.0, 0.01);
+	LateralControl lateral_control(16, 1, 12);
+	LongitudinalControl velocity_control(1.0, 0.0, 0.01);
 
 	int opcao;
 	std::cout << "Favor digite a opcao de controle:\n";
